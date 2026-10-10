@@ -25,6 +25,7 @@ class RunResult:
     cost_usd: float
     events: list[TrajectoryEvent] = field(default_factory=list)
     error: str = ""
+    stdout: str = ""  # pytest output, truncated; feeds failure analysis
 
 
 def run_task(
@@ -65,6 +66,7 @@ def run_task(
         cost_usd=cost,
         events=result.events if result else [],
         error=error,
+        stdout=outcome.stdout,
     )
 
 
