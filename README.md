@@ -15,6 +15,12 @@ pip install -e .
 python examples/demo.py
 ```
 
+The deep dive runs the full 12-task suite with statistical rigor, failure analysis, regression history, and cost modeling:
+
+```bash
+python examples/deep_dive.py
+```
+
 Bring your own agent by implementing the protocol:
 
 ```python
@@ -58,6 +64,25 @@ print(report.markdown())
 print("winner:", report.winner())
 ```
 
+## Real models
+
+Plug in OpenAI or Anthropic with one import. Optional deps: `pip install openai anthropic`.
+
+```python
+from harness.adapters import OpenAIAgent, AnthropicAgent
+from harness import run_suite
+from evals import EXTENDED_TASKS
+
+agent = OpenAIAgent(model="gpt-4o-mini")  # reads OPENAI_API_KEY
+results = run_suite(
+    agent, EXTENDED_TASKS, repeats=3,
+    price_in_per_1k=agent.price_in_per_1k,
+    price_out_per_1k=agent.price_out_per_1k,
+)
+```
+
+Per-model list prices ship in `harness.adapters.MODEL_PRICES`; override per instance if your contract differs.
+
 ## Example output
 
 From `examples/demo.py` (real run, scripted agents):
@@ -89,12 +114,43 @@ Winner by solve rate: **cot**
 
 Chain-of-thought buys 16.6 points of solve rate for a 57% cost increase. That is the kind of sentence this repo exists to produce. Full worked example: [examples/run_report.md](examples/run_report.md).
 
+From `examples/deep_dive.py` (12 tasks, statistical rigor):
+
+```
+| variant | solve rate | 95% CI | n |
+|---|---|---|---|
+| steady | 100.0% | [90.4%, 100.0%] | 36 |
+| buggy | 33.3% | [20.2%, 49.7%] | 36 |
+
+discordant pairs: steady-right/buggy-wrong=24, steady-wrong/buggy-right=0;
+chi2=22.04, p=0.0000
+```
+
+The gap is not noise. Full deep dive: [examples/deep_dive_report.md](examples/deep_dive_report.md).
+
+## The task suites
+
+**Base suite** (`evals.ALL_TASKS`, 6 tasks): fizzbuzz-plus, fix-binary-search, retry-backoff, lru-cache, csv-summary, balanced-parens. Small, sharp, discriminating.
+
+**Hard suite** (`evals.HARD_TASKS`, 6 tasks): the tasks that separate real agents from demos.
+
+| task | what it tests |
+|---|---|
+| fix-misleading-traceback | the stack trace blames `_chunks`; the fix belongs at the API boundary |
+| consolidate-order-module | merge duplicated accumulation into one pass (structurally verified) |
+| dependency-toposort | topological order with cycle and unknown-package errors |
+| fix-race-condition | lost-update race; 8 threads x 500 increments must total 4000 |
+| json-schema-validator | recursive spec implementation: types, required, enum, ranges |
+| log-parser-aggregator | messy real-world data: malformed lines, query strings, error rates |
+
+Every hard task ships with a verified oracle in `evals/oracles.py`; `tests/test_hard_tasks.py` proves each one is solvable and that broken solutions fail.
+
 ## Architecture
 
 ```
                     +------------------+
-                    |  evals/tasks.py  |   task definitions:
-                    |  6 coding tasks  |   prompt + pytest suite
+                    |  evals/          |   task definitions:
+                    |  12 tasks        |   prompt + pytest suite + oracle
                     +--------+---------+
                              |
                     +--------v---------+
@@ -103,16 +159,20 @@ Chain-of-thought buys 16.6 points of solve rate for a 57% cost increase. That is
                     |  run_suite()     |   trajectory, runs tests
                     +--------+---------+
                              |  RunResult per (agent, task, repeat)
-                    +--------v---------+
-                    | metrics/         |   solve rate, pass@k,
-                    | aggregate.py     |   cost/solve, latency p50/p90,
-                    | report.py        |   reliability, markdown tables
-                    +--------+---------+
-                             |
-                    +--------v---------+
-                    | ablations/       |   prompt variants x tasks x
-                    | compare.py       |   repeats -> winner by metric
-                    +------------------+
+              +--------------+--------------+
+              |              |              |
+     +--------v-----+ +-------v------+ +-----v--------+
+     | metrics/     | | metrics/     | | harness/     |
+     | aggregate.py | | stats.py     | | history.py   |
+     | report.py    | | failures.py  | |  JSONL run   |
+     | failures.py  | |  Wilson CI,  | |  log, trends |
+     | costing.py   | |  McNemar     | |  deltas      |
+     +--------------+ +--------------+ +--------------+
+              |
+     +--------v---------+
+     | ablations/       |   prompt variants x tasks x
+     | compare.py       |   repeats -> winner by metric
+     +------------------+
 ```
 
 The `Agent` protocol is the only integration point. Everything else — tasks, metrics, ablations — is pure Python over `RunResult`.
@@ -121,26 +181,35 @@ The `Agent` protocol is the only integration point. Everything else — tasks, m
 
 **Task.** A prompt plus an executable pytest suite. Tests are the judge, not an LLM. A task is solved iff every test passes.
 
-**RunResult.** One agent attempt: solved flag, pytest detail, wall-clock latency, token counts, dollar cost, full event trajectory, and any error. The runner never raises on agent failure; failures are data.
+**RunResult.** One agent attempt: solved flag, pytest detail, full pytest output, wall-clock latency, token counts, dollar cost, full event trajectory, and any error. The runner never raises on agent failure; failures are data.
 
 **Metrics.** Solve rate is the headline. `pass@k` answers "does it ever get there." Cost per solve answers "what does a win cost." Reliability answers "does it win every time." Latency p50/p90 answers "how long do users wait."
+
+**Statistical rigor** (`metrics/stats.py`). Wilson confidence intervals on every solve rate. McNemar's test on paired outcomes to decide if an ablation gain is real or noise. A sample-size calculator that answers "how many tasks before we trust a 10-point gain" before you pay for the runs.
+
+**Failure analysis** (`metrics/failures.py`). Every failure classified: syntax_error, import_error, name_error, assertion_failure, timeout, agent_crash, no_output. The variant x failure-type cross-tab shows which prompt changes fix which failure modes.
+
+**Regression history** (`harness/history.py`). Append-only JSONL log of scored runs. Trend tables and run-to-run deltas, so a team sees whether a prompt change helped or hurt across runs instead of trusting one afternoon's numbers.
+
+**Cost modeling** (`metrics/costing.py`). Projected suite cost across price tiers, and a breakeven analysis: the eval pays for itself if it catches even a small share of bad deploys.
 
 **Ablations.** Five built-in prompt variants (`baseline`, `cot`, `plan-then-act`, `read-only-first`, `self-critique`), each with a documented hypothesis about what it trades. `compare()` runs every variant over every task N times and names a winner per metric.
 
 ## Design principles
 
 1. Tests decide. No LLM-as-judge anywhere in the loop.
-2. Stdlib only. Zero dependencies; installs anywhere.
+2. Stdlib only in the core. Adapters are the only optional deps.
 3. Deterministic. Scripted agents make CI green without API keys.
 4. Cost is a first-class metric. Tokens have prices; the harness does the arithmetic.
 5. Failures are data. The runner catches agent exceptions and records them.
+6. Uncertainty is reported, not hidden. Every rate ships with an interval.
 
 ## Roadmap
 
-- Real agent adapters (bring-your-own-model via OpenAI/Anthropic APIs)
 - Sandboxed execution per task (containers instead of temp dirs)
 - Trajectory replay and step-level attribution
-- More tasks: multi-file refactors, repo-scale bug fixes
+- Multi-turn tool-use adapter (planner + executor loop)
+- More tasks: repo-scale bug fixes, cross-file refactors
 
 ## License
 
