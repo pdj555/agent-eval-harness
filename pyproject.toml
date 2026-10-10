@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agent-eval-harness"
+version = "0.1.0"
+description = "Eval harness for coding agents: solve rate, latency, cost, reliability, and ablations."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+dependencies = []
+keywords = ["agents", "eval", "llm", "coding"]
+
+[project.urls]
+Repository = "https://github.com/pdj555/agent-eval-harness"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["harness*", "evals*", "metrics*", "ablations*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
