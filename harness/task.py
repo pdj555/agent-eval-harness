@@ -30,6 +30,7 @@ class Task:
 class TestOutcome:
     passed: bool
     detail: str
+    stdout: str = ""  # full pytest output, truncated; used by failure analysis
 
 
 def verify(task: Task, solution_source: str | None) -> TestOutcome:
@@ -50,10 +51,12 @@ def verify(task: Task, solution_source: str | None) -> TestOutcome:
             )
         except subprocess.TimeoutExpired:
             return TestOutcome(False, f"tests timed out after {task.timeout_s}s")
+        raw = (proc.stdout or "") + "\n" + (proc.stderr or "")
+        raw = raw[:4000]
         if proc.returncode == 0:
-            return TestOutcome(True, _last_line(proc.stdout) or "all tests passed")
+            return TestOutcome(True, _last_line(proc.stdout) or "all tests passed", raw)
         detail = _last_line(proc.stdout) or _last_line(proc.stderr) or "tests failed"
-        return TestOutcome(False, detail)
+        return TestOutcome(False, detail, raw)
 
 
 def _last_line(text: str) -> str:
