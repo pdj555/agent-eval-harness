@@ -2,6 +2,30 @@
 
 Eval harness for coding agents. Runs agents against a 12-task suite and measures what actually matters: solve rate, latency, cost, and reliability. Statistical rigor is built in, not bolted on.
 
+Chain-of-thought buys 16.6 points of solve rate for a 57 percent cost increase. That is the kind of sentence this repo exists to produce.
+
+## What it tells you
+
+From `examples/demo.py` (real run, scripted agents):
+
+| variant | solve rate | cost/solve | p50 latency | reliability |
+| --- | --- | --- | --- | --- |
+| baseline | 66.7% | $63.0000 | 0.43s | 66.7% |
+| cot | 83.3% | $99.0000 | 0.51s | 83.3% |
+
+Winner by solve rate: **cot**
+
+From `examples/deep_dive.py` (12 tasks, statistical rigor):
+
+| variant | solve rate | 95% CI | n |
+| --- | --- | --- | --- |
+| steady | 100.0% | [90.4%, 100.0%] | 36 |
+| buggy | 33.3% | [20.2%, 49.7%] | 36 |
+
+discordant pairs: 24/0; chi2=22.04, p=0.0000
+
+The gap is not noise.
+
 ## Quickstart
 
 No API keys needed. The demo runs three scripted agents against six coding tasks:
@@ -93,62 +117,22 @@ Per-model list prices ship in `harness.adapters.MODEL_PRICES`. Override per inst
 
 **Ablation framework.** Five built-in prompt variants (`baseline`, `cot`, `plan-then-act`, `read-only-first`, `self-critique`), each with a documented hypothesis about what it trades. `compare()` runs every variant over every task N times and names a winner per metric.
 
-## Example output
-
-From `examples/demo.py` (real run, scripted agents):
-
-```
-| variant | solve rate | cost/solve | p50 latency | reliability |
-|---|---|---|---|---|
-| baseline | 66.7% | $63.0000 | 0.43s | 66.7% |
-| cot | 83.3% | $99.0000 | 0.51s | 83.3% |
-
-Winner by solve rate: cot
-```
-
-Chain-of-thought buys 16.6 points of solve rate for a 57 percent cost increase. That is the kind of sentence this repo exists to produce.
-
-From `examples/deep_dive.py` (12 tasks, statistical rigor):
-
-```
-| variant | solve rate | 95% CI | n |
-|---|---|---|---|
-| steady | 100.0% | [90.4%, 100.0%] | 36 |
-| buggy | 33.3% | [20.2%, 49.7%] | 36 |
-
-discordant pairs: 24/0; chi2=22.04, p=0.0000
-```
-
-The gap is not noise.
-
 ## Architecture
 
-```
-                    +------------------+
-                    |  evals/          |   task definitions:
-                    |  12 tasks        |   prompt + pytest suite + oracle
-                    +--------+---------+
-                             |
-                    +--------v---------+
-                    | harness/runner.py|   executes agent.act(),
-                    |  run_task()      |   times it, captures the
-                    |  run_suite()     |   trajectory, runs tests
-                    +--------+---------+
-                             |  RunResult per (agent, task, repeat)
-              +--------------+--------------+
-              |              |              |
-     +--------v-----+ +-------v------+ +-----v--------+
-     | metrics/     | | metrics/     | | harness/     |
-     | aggregate.py | | stats.py     | | history.py   |
-     | report.py    | | failures.py  | |  JSONL run   |
-     | failures.py  | |  Wilson CI,  | |  log, trends |
-     | costing.py   | |  McNemar     | |  deltas      |
-     +--------------+ +--------------+ +--------------+
-              |
-     +--------v---------+
-     | ablations/       |   prompt variants x tasks x
-     | compare.py       |   repeats -> winner by metric
-     +------------------+
+```mermaid
+flowchart LR
+    T["evals/\n12 tasks\nprompt + pytest + oracle"]
+    R["harness/runner.py\nrun_task / run_suite\nexecutes agent.act, times it,\ncaptures trajectory, runs tests"]
+    A["metrics/\naggregate, report,\nfailures, costing"]
+    S["metrics/\nstats, failures\nWilson CI, McNemar"]
+    H["harness/history.py\nJSONL run log\ntrends, deltas"]
+    C["ablations/compare.py\nvariants x tasks x repeats\nwinner by metric"]
+
+    T --> R
+    R -->|"RunResult per\n(agent, task, repeat)"| A
+    R --> S
+    R --> H
+    A --> C
 ```
 
 The `Agent` protocol is the only integration point. Everything else, tasks, metrics, ablations, is pure Python over `RunResult`.
