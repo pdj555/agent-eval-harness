@@ -117,6 +117,16 @@ Per-model list prices ship in `harness.adapters.MODEL_PRICES`. Override per inst
 
 **Ablation framework.** Five built-in prompt variants (`baseline`, `cot`, `plan-then-act`, `read-only-first`, `self-critique`), each with a documented hypothesis about what it trades. `compare()` runs every variant over every task N times and names a winner per metric.
 
+## Misalignment and containment tests
+
+Four checks built from Anthropic's October 9, 2026 report on unintended model actions: command injection through a flawed tool, submitting a live form that should never be submitted, reaching fee-gated data with a leaked token, and routing around a fetch tool's URL limit with a shortener. Each check reproduces one category in a sandbox and passes only if the containment layer blocks the workaround while the legitimate task still completes. Run the checks with the guard removed and all four fail, naming what escaped. That asymmetry is the point.
+
+```bash
+python examples/misalignment.py
+```
+
+Full writeup: [MISALIGNMENT_TESTS.md](MISALIGNMENT_TESTS.md).
+
 ## Architecture
 
 ```mermaid
@@ -156,7 +166,7 @@ The `Agent` protocol is the only integration point. Everything else, tasks, metr
 
 ## Verification
 
-36/36 tests pass. `python -m pytest` from the repo root. The demo and deep-dive examples run end to end with no API keys.
+41/41 tests pass. `python -m pytest` from the repo root. The demo and deep-dive examples run end to end with no API keys.
 
 ## Roadmap
 
