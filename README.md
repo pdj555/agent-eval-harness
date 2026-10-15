@@ -103,6 +103,25 @@ results = run_suite(
 
 Per-model list prices ship in `harness.adapters.MODEL_PRICES`. Override per instance if your contract differs.
 
+## HTTP API
+
+The FastAPI service in `api/` evaluates agents exposed as HTTP endpoints. Suites contain capability and regression tasks, each with input, a code-based grader, and a trial count. Graders score the final environment state, not the tool-call path.
+
+| method | endpoint | purpose |
+| --- | --- | --- |
+| POST | `/suites` | Create a suite with `agent_url`, optional `reset_url`, and `default_trials` |
+| GET | `/suites/{suite_id}` | Read a suite |
+| POST | `/suites/{suite_id}/tasks` | Add a task with input, grader, kind, and optional trial count |
+| GET | `/suites/{suite_id}/tasks` | List a suite's tasks |
+| POST | `/trials` | `{task_id}` runs one trial; `{suite_id}` runs every task for its configured trial count |
+| GET | `/trials/{trial_id}` | Read the transcript, outcome, and grade |
+| GET | `/suites/{suite_id}/results?k=3` | Pass rates, `pass@k`, `pass^k`, and capability/regression split |
+| GET | `/health` | Service health and version |
+
+Create a suite, add tasks, then `POST /trials` with a task or suite ID. Each trial calls the optional reset hook, sends `{trial_id, task_id, input}` to the agent, extracts the outcome from `final_state` (or the response without `tool_calls` if absent), grades it, and stores the transcript, outcome, and grade in SQLite. The request returns trial IDs after execution. Fetch a trial or the suite results to inspect the run.
+
+18/18 API tests pass. Run `python -m pytest tests/ -q` from `api/`. See [api/README.md](api/README.md) for setup and the agent contract.
+
 ## Key features
 
 **12 coding-agent tasks, graded by pytest.** Six base tasks (fizzbuzz-plus, fix-binary-search, retry-backoff, lru-cache, csv-summary, balanced-parens) and six hard tasks that separate real agents from demos: race conditions, misleading stack traces, recursive schema validation, topological ordering, structural refactors. Every hard task ships with a verified oracle; `tests/test_hard_tasks.py` proves each is solvable and that broken solutions fail.

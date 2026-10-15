@@ -28,6 +28,8 @@ python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
 
 Interactive docs: http://localhost:8000/docs
 
+18/18 tests pass. `python -m pytest tests/ -q` from `api/`.
+
 ## The eval vocabulary
 
 | Term | Meaning |
