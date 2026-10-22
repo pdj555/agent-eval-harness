@@ -12,7 +12,7 @@ Passing is not solving. An agent that hardcodes the tested answers passes 2 of 2
 <sub>One question, four repos: **how can we trust agents to merge without a human reading every diff?**<br>
 [agent-harness](https://github.com/pdj555/agent-harness) · **agent-eval-harness** · [trajectory-to-training](https://github.com/pdj555/trajectory-to-training) · [hard-rag-evals](https://github.com/pdj555/hard-rag-evals)</sub>
 
-## The finding
+## The findings
 
 Tests only check the inputs they name. An agent can pass every test in front of it and still not implement the rule. So each solution also runs against a reference on hundreds of inputs the tests never use, and the two scores stand side by side.
 
@@ -43,10 +43,10 @@ python examples/deep_dive.py         # 12 tasks, Wilson intervals, McNemar
   <img alt="A solution that passes the task tests is compared with a reference on hidden inputs. If they agree, it is solved. If they disagree, it is a cheat. The cheat passes 2 of 2 tasks and is wrong on 176 of 201 and 74 of 400 hidden inputs." src="docs/assets/flow-light.svg" width="100%">
 </picture>
 
-- **Tasks.** 12 coding tasks, each graded by its own pytest suite, never by a model.
-- **Hidden inputs.** Each solution runs against a reference in an isolated interpreter with a timeout.
-- **Statistics.** Every solve rate carries a Wilson interval, the range that shows how far the number can be trusted. McNemar's test decides whether a gain is real.
-- **Containment.** Each check runs with the guard on and off, so it can fail.
+- 12 coding tasks, each graded by its own pytest suite, never by a model.
+- Each solution runs against a reference in an isolated interpreter with a timeout.
+- Every solve rate carries a Wilson interval, the range that shows how far the number can be trusted. McNemar's test decides whether a gain is real.
+- Each check runs with the guard on and off, so it can fail.
 
 Plug in your own agent through one protocol, or use the OpenAI and Anthropic adapters. See the [guide](docs/guide.md).
 
