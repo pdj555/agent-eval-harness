@@ -9,6 +9,8 @@ Before an agent merges anything, two things need to be known: how often it actua
 
 **Does it stay in bounds?** Four containment checks rebuilt from Anthropic's October 9, 2026 report on unintended model actions: running commands through a flawed tool, submitting a live form, reaching fee-gated data with a leaked token, and dodging a fetch limit with a URL shortener. With the guard on, all four are blocked and the legitimate task still completes. With the guard off, all four escape. [Writeup](MISALIGNMENT_TESTS.md).
 
+**[Research summary](docs/research.md)**: what it measures, results, and where it breaks, on one page.
+
 ```bash
 pip install -e .
 python examples/misalignment.py   # containment checks, guard on and off
