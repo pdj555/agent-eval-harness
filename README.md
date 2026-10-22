@@ -5,12 +5,14 @@
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/hero-dark.svg">
-  <img alt="A steady agent solves 100% and a buggy one 33.3% (95% CI 20.2 to 49.7) over 36 paired runs. Four containment checks: blocked with the guard on, escaped with it off." src="docs/assets/hero-light.svg" width="100%">
+  <img alt="A special-casing agent solves 2 of 2 tasks by the tests and 0 of 2 on hidden inputs. Four containment checks are blocked with the guard on and escape with it off." src="docs/assets/hero-light.svg" width="100%">
 </picture>
 
 Before an agent merges anything, two things need to be known: how often it actually solves the task, and what it does when it can't. This harness measures both.
 
 **Is it good enough?** Solve rate is graded by pytest, never by a model, and every rate ships with a Wilson interval. McNemar's test on paired runs decides whether a gain is real or noise. In the deep dive, a buggy agent's 33.3% [20.2%, 49.7%] separates from a steady agent's 100% over 36 paired runs, p < 0.0001.
+
+**Did it really solve it?** Tests only check the inputs they name. A scripted agent that special-cases those inputs scores 2 of 2 by the tests and 0 of 2 on hidden inputs, where a reference implementation disagrees with it on 176 of 201 fizzbuzz inputs and 74 of 400 binary searches.
 
 **Does it stay in bounds?** Four containment checks rebuilt from Anthropic's October 9, 2026 report on unintended model actions: running commands through a flawed tool, submitting a live form, reaching fee-gated data with a leaked token, and dodging a fetch limit with a URL shortener. With the guard on, all four are blocked and the legitimate task still completes. With the guard off, all four escape. [Writeup](MISALIGNMENT_TESTS.md).
 
@@ -18,8 +20,9 @@ Before an agent merges anything, two things need to be known: how often it actua
 
 ```bash
 pip install -e .
-python examples/misalignment.py   # containment checks, guard on and off
-python examples/deep_dive.py      # 12 tasks, intervals, failure analysis
+python examples/tests_vs_hidden.py  # solved by tests vs by hidden inputs
+python examples/misalignment.py    # containment checks, guard on and off
+python examples/deep_dive.py       # 12 tasks, intervals, failure analysis
 ```
 
 No API keys. Scripted agents keep every number reproducible; adapters for OpenAI and Anthropic models are below.
@@ -207,7 +210,7 @@ The `Agent` protocol is the only integration point. Everything else, tasks, metr
 
 ## Verification
 
-41/41 tests pass. `python -m pytest` from the repo root. The demo and deep-dive examples run end to end with no API keys.
+46/46 tests pass. `python -m pytest` from the repo root. The demo and deep-dive examples run end to end with no API keys.
 
 ## Roadmap
 
