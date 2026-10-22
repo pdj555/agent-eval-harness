@@ -36,6 +36,11 @@ python examples/deep_dive.py         # 12 tasks, Wilson intervals, McNemar
 
 ## How it works
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/flow-dark.svg">
+  <img alt="A solution that passes the task tests is compared with a reference on hidden inputs: if they agree it is solved, if not it is special-cased. The cheat passes 2 of 2 tasks and is wrong on 176 of 201 and 74 of 400 hidden inputs." src="docs/assets/flow-light.svg" width="100%">
+</picture>
+
 - **Tasks.** 12 coding tasks, each graded by its own pytest suite, never by a model.
 - **Hidden inputs.** Solutions run against a reference in an isolated interpreter with a timeout.
 - **Statistics.** Every solve rate carries a Wilson interval. McNemar's test decides whether a gain is real.
