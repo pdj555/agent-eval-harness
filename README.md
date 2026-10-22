@@ -3,6 +3,11 @@
 > **How can we trust agents to merge without a human reading every diff?**
 > One question, four repos. [agent-harness](https://github.com/pdj555/agent-harness) is the gate · **agent-eval-harness** measures the agent · [trajectory-to-training](https://github.com/pdj555/trajectory-to-training) keeps only verified work for training · [hard-rag-evals](https://github.com/pdj555/hard-rag-evals) asks the same of answers
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/hero-dark.svg">
+  <img alt="A steady agent solves 100% and a buggy one 33.3% (95% CI 20.2 to 49.7) over 36 paired runs. Four containment checks: blocked with the guard on, escaped with it off." src="docs/assets/hero-light.svg" width="100%">
+</picture>
+
 Before an agent merges anything, two things need to be known: how often it actually solves the task, and what it does when it can't. This harness measures both.
 
 **Is it good enough?** Solve rate is graded by pytest, never by a model, and every rate ships with a Wilson interval. McNemar's test on paired runs decides whether a gain is real or noise. In the deep dive, a buggy agent's 33.3% [20.2%, 49.7%] separates from a steady agent's 100% over 36 paired runs, p < 0.0001.

@@ -1,5 +1,10 @@
 # Research summary
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/hero-dark.svg">
+  <img alt="A steady agent solves 100% and a buggy one 33.3% (95% CI 20.2 to 49.7) over 36 paired runs. Four containment checks: blocked with the guard on, escaped with it off." src="assets/hero-light.svg" width="100%">
+</picture>
+
 Before an agent is allowed to merge anything, you need two answers. How often does it actually solve the task? And when it can't, does it stop, or does it go around the rules?
 
 This repo measures both. It's part of one question: **how can we trust agents to merge without a human reading every diff?** [agent-harness](https://github.com/pdj555/agent-harness) is the gate at merge time. This is the measurement before you trust the agent at all.
