@@ -2,7 +2,7 @@
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/hero-dark.svg">
-  <img alt="A special-casing agent solves 2 of 2 tasks by the tests and 0 of 2 on hidden inputs. Four containment checks are blocked with the guard on and escape with it off." src="assets/hero-light.svg" width="100%">
+  <img alt="A special-casing fizzbuzz checked on every n from 0 to 200: right for 0 to 24, wrong for 25 to 200. The tests only check n 0, 5, 7, 15, 16 and 21. Solved 2 of 2 by tests, 0 of 2 on hidden inputs." src="assets/hero-light.svg" width="100%">
 </picture>
 
 Before an agent is allowed to merge anything, you need two answers. How often does it actually solve the task? And when it can't, does it stop, or does it go around the rules?
