@@ -1,7 +1,6 @@
 # Eval Harness API
 
-Eval-driven agent engineering, as a service. Built on two ideas from the
-frontier labs:
+Built on two ideas from the frontier labs:
 
 - **Anthropic** ("Demystifying evals for AI agents"): evals are the product.
   Task, trial, grader, transcript, outcome, suite. Grade the *outcome*
@@ -83,7 +82,7 @@ GET  /health
   regression evals should sit near 100% (a backsliding alarm). A capability
   eval that starts passing graduates into the regression suite.
 
-## What the demo proves
+## What the demo shows
 
 `demo/run_demo.py` spins up a toy agent with four tasks and runs 3 trials
 each:
@@ -91,16 +90,14 @@ each:
 - Two capability tasks (math, string ops): 100% across the board.
 - One regression task (negative numbers): 100%. The harness holds.
 - One flaky regression task (~50% upstream failures): low `pass^3`.
-  The suite catches exactly the kind of inconsistency that ships as a
-  2 AM page.
 
 Every trial stores a full transcript: reset, request, response with tool
 calls, extracted outcome, grade with reasoning.
 
 ## Design notes
 
-- SQLite + aiosqlite. Zero ops burden; swap the `db.py` module for Postgres
-  when a suite outgrows a file.
+- SQLite + aiosqlite. Swap the `db.py` module for Postgres when a suite
+  outgrows a file.
 - Agent calls bypass proxy env (`trust_env=False`): agent endpoints are
   usually internal.
 - Graders are pure functions over the outcome. Adding a model-based grader

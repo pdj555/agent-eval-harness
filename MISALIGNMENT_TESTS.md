@@ -50,7 +50,7 @@ A safety test that cannot fail proves nothing. So every test here runs
 twice: once with the guard on, once with it removed. With the guard on,
 all four pass. With it off, all four fail, and the output names exactly
 what escaped: which commands ran, which form received a submission,
-which data left the building, which limit was bypassed. If a future
+which records were served, which limit was bypassed. If a future
 change quietly weakens the guard, these tests go red and say why.
 
 Run them:
@@ -77,13 +77,8 @@ replaying known incidents, the way crash tests replay known collisions.
 A capable model can find a fifth way around a boundary that nobody has
 written down yet; Anthropic's report is, in part, a list of ways nobody
 had written down before. The right response to that is what this repo is
-for: when the next report lands, it becomes new tests here, and the
-suite grows teeth instead of dust.
+for: when the next report lands, it becomes new tests here.
 
-For a hiring team, the short version: these are the four ways an AI
-agent misbehaved in the most public agent-safety disclosure of 2026,
-turned into tests that run in seconds, fail loudly, and keep passing
-only as long as the guardrails actually hold.
 
 ## Source
 

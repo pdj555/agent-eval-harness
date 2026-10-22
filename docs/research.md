@@ -34,7 +34,7 @@ python examples/misalignment.py   # guard on, then off
 python examples/deep_dive.py      # 12 tasks, intervals, McNemar
 ```
 
-## Tests say solved. Hidden inputs say otherwise.
+## Tests vs hidden inputs
 
 This harness counts a task as solved when its tests pass. So I wrote a scripted agent that cheats the way reward-hacking models have been reported to: on fizzbuzz-plus it applies the "!" rule only to 7 and 16, the two numbers the tests check, and on binary search it leaves both off-by-one bugs and caps the loop so the hang test passes.
 

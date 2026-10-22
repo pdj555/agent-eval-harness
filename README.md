@@ -39,8 +39,8 @@ python examples/deep_dive.py         # 12 tasks, Wilson intervals, McNemar
 ## How it works
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/flow-dark.svg">
-  <img alt="A solution that passes the task tests is compared with a reference on hidden inputs. If they agree, it is solved. If they disagree, it is a cheat. The cheat passes 2 of 2 tasks and is wrong on 176 of 201 and 74 of 400 hidden inputs." src="docs/assets/flow-light.svg" width="100%">
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/flow-animated-dark.svg">
+  <img alt="A solution that passes the task tests is compared with a reference on hidden inputs. If they agree, it is solved. If they disagree, it is a cheat. The cheat passes 2 of 2 tasks and is wrong on 176 of 201 and 74 of 400 hidden inputs." src="docs/assets/flow-animated-light.svg" width="100%">
 </picture>
 
 - 12 coding tasks, each graded by its own pytest suite, never by a model.
