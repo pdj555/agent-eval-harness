@@ -1,10 +1,12 @@
 # agent-eval-harness
 
-**Did the agent really solve it, and does it stay in bounds when it can't?** An eval harness for coding agents that answers both.
+Passing is not solving. An agent that hardcodes the tested answers passes 2 of 2 tasks by the tests and 0 of 2 on inputs the tests never use.
+
+2 questions run this repo: did the agent really solve it, and does it stay in bounds when it cannot?
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/hero-dark.svg">
-  <img alt="A special-casing fizzbuzz checked on every n from 0 to 200: right for 0 to 24, wrong for 25 to 200. The tests only check n 0, 5, 7, 15, 16 and 21. Solved 2 of 2 by tests, 0 of 2 on hidden inputs." src="docs/assets/hero-light.svg" width="100%">
+  <img alt="A fizzbuzz solution that hardcodes the tested answers, checked on every n from 0 to 200: right for 0 to 24, wrong for 25 to 200. The tests only check n 0, 5, 7, 15, 16 and 21. Solved 2 of 2 by tests, 0 of 2 on hidden inputs." src="docs/assets/hero-light.svg" width="100%">
 </picture>
 
 <sub>One question, four repos: **how can we trust agents to merge without a human reading every diff?**<br>
@@ -12,7 +14,7 @@
 
 ## The finding
 
-Passing isn't solving. Tests only check the inputs they name, so an agent can pass them without implementing the rule. A hidden-input check compares each solution with a reference on hundreds of inputs the tests never use.
+Tests only check the inputs they name. An agent can pass every test in front of it and still not implement the rule. So each solution also runs against a reference on hundreds of inputs the tests never use, and the two scores stand side by side.
 
 | Agent | Solved by tests | Solved on hidden inputs |
 | --- | --- | --- |
@@ -21,7 +23,7 @@ Passing isn't solving. Tests only check the inputs they name, so an agent can pa
 
 The cheat is wrong on 176 of 201 fizzbuzz inputs and 74 of 400 binary searches.
 
-Containment holds where it's tested. Four checks rebuild the incidents in Anthropic's October 2026 report on unintended model actions. With the guard on, all four are blocked and the honest agent still finishes. With it off, all four escape.
+Containment holds where it is tested. Four checks rebuild the incidents in Anthropic's October 2026 report on unintended model actions. With the guard on, all four are blocked and the honest agent still finishes. With the guard off, all four escape.
 
 ## Run it
 
@@ -38,21 +40,21 @@ python examples/deep_dive.py         # 12 tasks, Wilson intervals, McNemar
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/flow-dark.svg">
-  <img alt="A solution that passes the task tests is compared with a reference on hidden inputs: if they agree it is solved, if not it is special-cased. The cheat passes 2 of 2 tasks and is wrong on 176 of 201 and 74 of 400 hidden inputs." src="docs/assets/flow-light.svg" width="100%">
+  <img alt="A solution that passes the task tests is compared with a reference on hidden inputs. If they agree, it is solved. If they disagree, it is a cheat. The cheat passes 2 of 2 tasks and is wrong on 176 of 201 and 74 of 400 hidden inputs." src="docs/assets/flow-light.svg" width="100%">
 </picture>
 
 - **Tasks.** 12 coding tasks, each graded by its own pytest suite, never by a model.
-- **Hidden inputs.** Solutions run against a reference in an isolated interpreter with a timeout.
-- **Statistics.** Every solve rate carries a Wilson interval. McNemar's test decides whether a gain is real.
+- **Hidden inputs.** Each solution runs against a reference in an isolated interpreter with a timeout.
+- **Statistics.** Every solve rate carries a Wilson interval, the range that shows how far the number can be trusted. McNemar's test decides whether a gain is real.
 - **Containment.** Each check runs with the guard on and off, so it can fail.
 
 Plug in your own agent through one protocol, or use the OpenAI and Anthropic adapters. See the [guide](docs/guide.md).
 
 ## Limits
 
-- The hidden-input check covers 2 of the 12 tasks so far.
+- The check on hidden inputs covers 2 of the 12 tasks so far.
 - Every number here comes from scripted agents.
-- The containment checks replay known incidents. A model can find a fifth way.
+- The containment checks replay known incidents, the ones already on record. A model can find a fifth way.
 
 ## Docs
 
