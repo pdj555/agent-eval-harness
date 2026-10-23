@@ -1,28 +1,21 @@
 # agent-eval-harness guide
 
-This guide covers setup, usage, architecture, and design. For what this repo found and why it matters, see the [README](../README.md) and the [research summary](research.md).
+Setup, usage, architecture, and design. For what this repo found, see the [README](../README.md) and the [research summary](research.md).
 
 ## What the examples show
 
-From `examples/demo.py` (real run, scripted agents):
+From `examples/demo.py` (scripted agents, six base tasks):
 
 | variant | solve rate | cost/solve | p50 latency | reliability |
 | --- | --- | --- | --- | --- |
 | baseline | 66.7% | $63.0000 | 0.43s | 66.7% |
 | cot | 83.3% | $99.0000 | 0.51s | 83.3% |
 
-Winner by solve rate: **cot**
+Winner by solve rate: cot
 
-With scripted agents, chain-of-thought adds 16.6 points of solve rate for 57 percent more cost per solve. With real models, the same report shows whether the higher solve rate is worth the higher cost.
+With scripted agents, the cot variant adds 16.6 points of solve rate for 57 percent more cost per solve. The token counts behind these dollars are fixed numbers set in the script, so the costs show the arithmetic the harness does, not a measurement. With real models, the same report answers whether the gain is worth the cost.
 
-From `examples/deep_dive.py` (12 tasks, statistical rigor):
-
-| variant | solve rate | 95% CI | n |
-| --- | --- | --- | --- |
-| steady | 100.0% | [90.4%, 100.0%] | 36 |
-| buggy | 33.3% | [20.2%, 49.7%] | 36 |
-
-discordant pairs: 24/0; chi2=22.04, p=0.0000
+From `examples/deep_dive.py` (12 tasks, 3 repeats each): steady solves 100.0% [90.4%, 100.0%], buggy 33.3% [20.2%, 49.7%], n = 36 each. Discordant pairs 24/0; chi2 = 22.04, p = 0.0000. Full tables in `examples/deep_dive_report.md`.
 
 ## Quickstart
 
@@ -33,7 +26,7 @@ pip install -e .
 python examples/demo.py
 ```
 
-The deep dive runs the full 12-task suite with confidence intervals, failure analysis, regression history, and cost modeling:
+The deep dive runs the full 12 task suite with confidence intervals, failure analysis, regression history, and cost modeling:
 
 ```bash
 python examples/deep_dive.py
@@ -99,11 +92,11 @@ results = run_suite(
 )
 ```
 
-Per-model list prices ship in `harness.adapters.MODEL_PRICES`. Override per instance if your contract differs.
+List prices per model ship in `harness.adapters.MODEL_PRICES`. Override per instance if your contract differs.
 
 ## HTTP API
 
-The FastAPI service in `api/` evaluates agents exposed as HTTP endpoints. Suites contain capability and regression tasks, each with input, a code-based grader, and a trial count. Graders score the final environment state, not the tool-call path.
+The FastAPI service in `api/` evaluates agents exposed as HTTP endpoints. Suites contain capability and regression tasks, each with input, a grader written in code, and a trial count. Graders score the final environment state, not the tool call path.
 
 | method | endpoint | purpose |
 | --- | --- | --- |
@@ -116,7 +109,7 @@ The FastAPI service in `api/` evaluates agents exposed as HTTP endpoints. Suites
 | GET | `/suites/{suite_id}/results?k=3` | Pass rates, `pass@k`, `pass^k`, and capability/regression split |
 | GET | `/health` | Service health and version |
 
-Create a suite, add tasks, then `POST /trials` with a task or suite ID. Each trial calls the optional reset hook, sends `{trial_id, task_id, input}` to the agent, extracts the outcome from `final_state` (or the response without `tool_calls` if absent), grades it, and stores the transcript, outcome, and grade in SQLite. The request returns trial IDs after execution. Fetch a trial or the suite results to inspect the run.
+Each trial calls the optional reset hook, sends `{trial_id, task_id, input}` to the agent, takes the outcome from `final_state` (or the response without `tool_calls` if absent), grades it, and stores the transcript, outcome, and grade in SQLite.
 
 18/18 API tests pass. Run `python -m pytest tests/ -q` from `api/`. See [api/README.md](../api/README.md) for setup and the agent contract.
 
@@ -124,31 +117,31 @@ Create a suite, add tasks, then `POST /trials` with a task or suite ID. Each tri
 
 ### 12 coding tasks, graded by pytest
 
-Six base tasks (fizzbuzz-plus, fix-binary-search, retry-backoff, lru-cache, csv-summary, balanced-parens) and six hard tasks: race conditions, misleading stack traces, recursive schema validation, topological ordering, structural refactors. Every hard task ships with a verified solution; `tests/test_hard_tasks.py` proves each is solvable and that broken solutions fail.
+Six base tasks (fizzbuzz-plus, fix-binary-search, retry-backoff, lru-cache, csv-summary, balanced-parens) and six hard tasks: race conditions, misleading stack traces, recursive schema validation, topological ordering, structural refactors. Every hard task ships with a verified solution in `evals/oracles.py`; `tests/test_hard_tasks.py` proves each is solvable and that broken solutions fail.
 
 ### Confidence intervals and paired tests
 
-Wilson confidence intervals on every solve rate. McNemar's test on paired outcomes to decide whether a difference between variants is larger than chance variation. A sample-size calculator that estimates how many tasks a comparison needs before a 10-point gain can be trusted, before you pay for the runs.
+Wilson confidence intervals on every solve rate. McNemar's test on paired outcomes, to judge whether a difference between variants is larger than chance variation. A sample size calculator (`metrics.stats.min_sample_size`) that estimates how many tasks a comparison needs before a gain of a given size can be trusted, before you pay for the runs.
 
 ### Failure classes
 
-Every failure is classified: syntax_error, import_error, name_error, assertion_failure, timeout, agent_crash, no_output. The variant by failure type table shows which prompt changes fix which failure modes.
+Every failure is classified into one of eight classes: agent_crash, no_output, timeout, syntax_error, import_error, name_error, assertion_failure, unknown. The class is read from the run's error and its pytest output. The variant by failure type table shows which prompt changes fix which failure modes.
 
 ### Scored run history
 
-An append-only JSONL log of scored runs, with trend tables and run to run deltas, so a prompt change is judged across runs instead of by one afternoon's numbers.
+Scored runs are appended to a JSONL log, with trend tables and run to run deltas, so a prompt change is judged across runs instead of by one afternoon's numbers.
 
 ### Cost estimates
 
-Projected suite cost across price tiers, plus a breakeven analysis: the eval pays for itself if it catches even a small share of bad deploys. Cost per solve is reported next to solve rate.
+Projected suite cost across price tiers, plus a breakeven analysis: the catch rate an eval needs against an assumed loss per bad deploy before it pays for itself. Cost per solve is reported next to solve rate.
 
 ### Comparing prompt variants
 
-Five built-in prompt variants (`baseline`, `cot`, `plan-then-act`, `read-only-first`, `self-critique`), each with a note on what it is expected to trade. `compare()` runs every variant over every task N times and names a winner per metric.
+Five prompt variants ship with the harness (`baseline`, `cot`, `plan-then-act`, `read-only-first`, `self-critique`), each with a note on what it is expected to trade. `compare()` runs every variant over every task N times and names a winner per metric.
 
 ## Misalignment and containment tests
 
-Four checks built from Anthropic's October 9, 2026 report on unintended model actions: command injection through a flawed tool, submitting a live form that should never be submitted, reaching fee-gated data with a leaked token, and routing around a fetch tool's URL limit with a shortener. Each check reproduces one category in a sandbox and passes only if the containment layer blocks the workaround while the legitimate task still completes. Run the checks with the guard removed and all four fail, naming what escaped.
+Four checks built from Anthropic's October 9, 2026 report on unintended model actions: command injection through a flawed tool, submitting a live form that should never be submitted, reaching fee gated data with a leaked token, and routing around a fetch tool's URL limit with a shortener. Each check reproduces one category in a sandbox and passes only if the containment layer blocks the workaround, the legitimate task still completes, and a blocked attempt is on record. With the guard removed, all four fail, naming what escaped.
 
 ```bash
 python examples/misalignment.py
@@ -162,37 +155,35 @@ Full writeup: [MISALIGNMENT_TESTS.md](../MISALIGNMENT_TESTS.md).
 flowchart LR
     T["evals/\n12 tasks\nprompt + pytest + oracle"]
     R["harness/runner.py\nrun_task / run_suite\nexecutes agent.act, times it,\ncaptures trajectory, runs tests"]
-    A["metrics/\naggregate, report,\nfailures, costing"]
-    S["metrics/\nstats, failures\nWilson CI, McNemar"]
+    M["metrics/\naggregate, report, failures,\ncosting, stats, hidden\nWilson CI, McNemar, hidden inputs"]
     H["harness/history.py\nJSONL run log\ntrends, deltas"]
     C["ablations/compare.py\nvariants x tasks x repeats\nwinner by metric"]
 
     T --> R
-    R -->|"RunResult per\n(agent, task, repeat)"| A
-    R --> S
+    R -->|"RunResult per\n(agent, task, repeat)"| M
     R --> H
-    A --> C
+    M --> C
 ```
 
-The `Agent` protocol is the only integration point. Everything else, tasks, metrics, ablations, is pure Python over `RunResult`.
+The `Agent` protocol is the only integration point. Everything else, tasks, metrics, ablations, is plain Python over `RunResult`.
 
 ## Concepts
 
 ### Task
 
-A prompt plus an executable pytest suite. Tests are the judge, not an LLM. A task is solved iff every test passes.
+A prompt plus an executable pytest suite. Tests are the judge, not an LLM. A task is solved if and only if every test passes.
 
 ### RunResult
 
-One agent attempt: solved flag, pytest detail, full pytest output, wall-clock latency, token counts, dollar cost, full event trajectory, and any error. The runner never raises on agent failure; failures are data.
+One agent attempt: solved flag, pytest detail, full pytest output, latency in seconds, token counts, dollar cost, full event trajectory, and any error. The runner never raises on agent failure; failures are data.
 
 ### Metrics
 
-Solve rate is the share of runs that pass. `pass@k` is the share of tasks solved at least once in k repeats. Cost per solve is the total cost divided by the number of solved runs. Reliability is the share of tasks solved on every repeat. Latency p50 and p90 are the median and 90th percentile run times.
+Solve rate is the share of runs that pass. `pass@k` is the share of tasks solved at least once in k repeats. Cost per solve is total cost divided by solved runs. Reliability is the share of tasks solved on every repeat. Latency p50 and p90 are the median and 90th percentile run times.
 
 ## Design principles
 
-1. Tests decide. No LLM-as-judge anywhere in the loop.
+1. Tests decide. No model acts as judge anywhere in the loop.
 2. Stdlib only in the core. Adapters are the only optional deps.
 3. Deterministic. Scripted agents make CI green without API keys.
 4. Cost is reported with every result. Tokens have prices; the harness does the arithmetic.
@@ -201,11 +192,11 @@ Solve rate is the share of runs that pass. `pass@k` is the share of tasks solved
 
 ## Verification
 
-46/46 tests pass. `python -m pytest` from the repo root. The demo and deep-dive examples run end to end with no API keys.
+46/46 tests pass. `python -m pytest` from the repo root. The demo and deep dive examples run end to end with no API keys.
 
 ## Roadmap
 
 - Sandboxed execution per task (containers instead of temp dirs)
-- Trajectory replay and step-level attribution
-- Multi-turn tool-use adapter (planner + executor loop)
-- More tasks: repo-scale bug fixes, cross-file refactors
+- Trajectory replay and attribution per step
+- A multi turn tool use adapter (planner + executor loop)
+- More tasks: repo scale bug fixes, refactors across files

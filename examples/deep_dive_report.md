@@ -34,8 +34,8 @@ p < 0.05, so the gap is not noise. On 12 tasks x 3 repeats the harness can alrea
 
 | time | agent | variant | solve_rate |
 |---|---|---|---|
-| 2026-10-10T17:37:32+00:00 | steady | steady | 100.0% |
-| 2026-10-10T17:37:32+00:00 | buggy | buggy | 33.3% |
+| 2026-10-23T03:05:03+00:00 | steady | steady | 100.0% |
+| 2026-10-23T03:05:03+00:00 | buggy | buggy | 33.3% |
 
 One JSONL line per scored run. Compare any two runs with `harness.render_delta` to see if a change helped or hurt.
 
@@ -67,8 +67,8 @@ The eval pays for itself even if it catches a small share of bad deploys.
 | pass@3 | 100.0% |
 | mean cost / task | $23.7000 |
 | cost per solve | $23.7000 |
-| latency p50 | 0.30s |
-| latency p90 | 0.32s |
+| latency p50 | 0.44s |
+| latency p90 | 0.59s |
 | reliability | 100.0% |
 | mean steps | 4.0 |
 
@@ -82,8 +82,8 @@ The eval pays for itself even if it catches a small share of bad deploys.
 | pass@3 | 33.3% |
 | mean cost / task | $23.7000 |
 | cost per solve | $71.1000 |
-| latency p50 | 0.45s |
-| latency p90 | 0.53s |
+| latency p50 | 0.56s |
+| latency p90 | 0.83s |
 | reliability | 33.3% |
 | mean steps | 4.0 |
 
