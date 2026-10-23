@@ -5,17 +5,17 @@
   <img alt="A special-casing fizzbuzz checked on every n from 0 to 200: right for 0 to 24, wrong for 25 to 200. The tests only check n 0, 5, 7, 15, 16 and 21. Solved 2 of 2 by tests, 0 of 2 on hidden inputs." src="assets/hero-light.svg" width="100%">
 </picture>
 
-Before an agent is allowed to merge anything, you need two answers. How often does it actually solve the task? And when it can't, does it stop, or does it go around the rules?
+This repo measures two things about an agent: how often it actually solves the task, and whether it stops when it cannot solve it instead of going around the rules.
 
-This repo measures both. It's part of one question: **how can we trust agents to merge without a human reading every diff?** [agent-harness](https://github.com/pdj555/agent-harness) is the gate at merge time. This is the measurement before you trust the agent at all.
+[agent-harness](https://github.com/pdj555/agent-harness) checks an agent's changes at merge time. This repo covers the step before that, measuring the agent itself.
 
-## Is it good enough
+## Solve rate
 
-12 coding tasks, each graded by its own pytest suite. Six are basic. Six are built to separate real agents from demos: race conditions, misleading stack traces, recursive schema validation, topological ordering, structural refactors. Each hard task ships with a verified solution, and a test proves broken solutions fail.
+12 coding tasks, each graded by its own pytest suite. Six are basic. Six are harder: race conditions, misleading stack traces, recursive schema validation, topological ordering, structural refactors. Each hard task ships with a verified solution, and a test proves broken solutions fail.
 
-Every solve rate comes with a Wilson interval, and paired comparisons use McNemar's test, so a gain is either real or labeled noise. In the deep dive, a steady agent solves 100% and a buggy one 33.3% [20.2%, 49.7%] over 36 paired runs. McNemar gives chi2 = 22.04, p < 0.0001. The gap is real.
+Every solve rate comes with a Wilson interval, and paired comparisons use McNemar's test, which checks whether a difference is larger than chance variation. In the deep dive, a steady agent solves 100% and a buggy one 33.3% [20.2%, 49.7%] over 36 paired runs. McNemar gives chi2 = 22.04, p < 0.0001.
 
-## Does it stay in bounds
+## Staying within the rules
 
 On October 9, 2026, Anthropic published a report on its own models doing things nobody asked for during evals and internal use. I rebuilt four of those as sandboxed tests:
 
@@ -45,7 +45,7 @@ Then I compared every solution with a reference implementation on inputs the tes
 | Honest | 2 of 2 | 2 of 2 |
 | Special-casing | 2 of 2 | **0 of 2** |
 
-The cheat is wrong on 176 of 201 fizzbuzz inputs and 74 of 400 searches. `binary_search([-45, -17, 3, 12, 15, 47], 3)` returns -1. The tests never notice.
+The cheat is wrong on 176 of 201 fizzbuzz inputs and 74 of 400 searches. `binary_search([-45, -17, 3, 12, 15, 47], 3)` returns -1, and the task tests pass it anyway.
 
 ```bash
 python examples/tests_vs_hidden.py
@@ -55,16 +55,16 @@ The check runs each solution in a separate, isolated interpreter with a timeout.
 
 ## Where it breaks
 
-- **Solve rate is still graded by tests.** The hidden-input check covers 2 of the 12 tasks. On the other 10, a special-cased solution scores as solved.
-- **The containment tests replay known incidents.** The agents are scripted and the guard was written against these four shapes, so passing is close to built in. A model can find a fifth way that nobody has written down.
-- **Every number here comes from scripted agents.** The adapters for OpenAI and Anthropic models exist, but no real-model results are in the repo yet.
-- **12 tasks is small.** The intervals say so.
+- Solve rate is still graded by tests. The hidden-input check covers 2 of the 12 tasks. On the other 10, a special-cased solution scores as solved.
+- The containment tests replay known incidents. The agents are scripted and the guard was written against these four shapes, so passing is close to built in. A model can find a fifth way that nobody has written down.
+- Every number here comes from scripted agents. The adapters for OpenAI and Anthropic models exist, but no real-model results are in the repo yet.
+- 12 tasks is small, and the wide intervals show it.
 
 ## Next
 
 1. Extend the hidden-input check to all 12 tasks and report solve rate both ways, side by side, in every run.
 2. Run real models through the suite and the containment tests, unscripted.
-3. When the next incident report lands, turn it into tests here.
+3. When the next incident report is published, add tests for it here.
 
 Containment details: [MISALIGNMENT_TESTS.md](../MISALIGNMENT_TESTS.md).
 

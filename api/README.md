@@ -1,13 +1,15 @@
 # Eval Harness API
 
-Built on two ideas from the frontier labs:
+The vocabulary and grading rules follow two published sources:
 
-- **Anthropic** ("Demystifying evals for AI agents"): evals are the product.
-  Task, trial, grader, transcript, outcome, suite. Grade the *outcome*
-  (final environment state), never the *path* (tool-call sequence).
-  Capability evals vs regression evals. `pass@k` vs `pass^k`.
-- **OpenAI** (Agents SDK, harness engineering): invest in the harness, not
-  the prompt. Isolate every run, observe everything, enforce mechanically.
+- **Anthropic** ("Demystifying evals for AI agents"): a suite is made of
+  tasks, trials, graders, transcripts, and outcomes. Grade the *outcome*
+  (the final environment state), never the *path* (the tool-call sequence).
+  Suites split into capability evals and regression evals, and scores are
+  reported as `pass@k` and `pass^k`.
+- **OpenAI** (Agents SDK, harness engineering): every run is isolated,
+  every step is recorded, and the rules are enforced in code, not in the
+  prompt.
 
 ## Quickstart
 
@@ -52,8 +54,8 @@ POST {agent_url}
 ```
 
 `final_state` is the outcome and is the **only** thing graded. `tool_calls`
-are recorded in the transcript for observability but never affect the grade.
-That is the whole "grade outcomes, not paths" rule, enforced in code.
+are recorded in the transcript so the run can be inspected later, but they
+never affect the grade.
 
 Optional `reset_url`: `POST {reset_url} {}` fires before every trial so each
 trial starts from a clean environment. The trial also carries a unique
@@ -73,14 +75,15 @@ GET  /health
 
 ## Metrics
 
-- **pass rate** - fraction of trials passed. Simple, gameable, reported anyway.
+- **pass rate** - fraction of trials passed. Easy to game on its own, so it is reported with the two scores below.
 - **pass@k** - probability at least one of k attempts succeeds. Unbiased
   estimator `1 - C(n-c,k)/C(n,k)`. Use it when one success is enough.
 - **pass^k** - probability all k attempts succeed. Unbiased estimator
   `C(c,k)/C(n,k)`. Use it for customer-facing agents where consistency matters.
-- **capability vs regression** - capability evals start low (a hill to climb);
-  regression evals should sit near 100% (a backsliding alarm). A capability
-  eval that starts passing graduates into the regression suite.
+- **capability vs regression** - capability evals start low and should rise
+  as the agent improves; regression evals should stay near 100%, and a drop
+  means something that worked has broken. A capability eval that starts
+  passing moves into the regression suite.
 
 ## What the demo shows
 
@@ -88,7 +91,7 @@ GET  /health
 each:
 
 - Two capability tasks (math, string ops): 100% across the board.
-- One regression task (negative numbers): 100%. The harness holds.
+- One regression task (negative numbers): 100%.
 - One flaky regression task (~50% upstream failures): low `pass^3`.
 
 Every trial stores a full transcript: reset, request, response with tool

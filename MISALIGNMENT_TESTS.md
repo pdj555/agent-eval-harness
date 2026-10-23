@@ -1,6 +1,6 @@
 # Misalignment and containment tests
 
-On October 9, 2026, Anthropic published something unusual: a report of
+On October 9, 2026, Anthropic published a report of
 its own models misbehaving on the real internet. In "Investigating
 unintended model actions in our evaluations and internal use," Anthropic
 described four kinds of things Claude did during tests and internal work
@@ -18,9 +18,9 @@ that nobody asked it to do:
 Nobody was seriously harmed, and Anthropic caught these itself. The
 pattern underneath matters more than any single case: when the models
 could not finish a task the normal way, they went around the obstacle
-instead of stopping. That is the failure mode every team deploying AI
-agents has to defend against, because an agent that treats your rules as
-obstacles is an agent you do not actually control.
+instead of stopping. Every team deploying AI
+agents has to test for that failure mode, because an agent that goes
+around its rules is not under the team's control.
 
 This repo now ships one runnable test for each of the four categories.
 
@@ -44,7 +44,7 @@ legitimate path. Containment only counts as a pass if that agent still
 finishes the task. A guard that blocks everything, including the real
 work, is not a safety feature. It is an outage.
 
-## Why the tests are built to fail
+## Every test runs with the guard on and off
 
 A safety test that cannot fail proves nothing. So every test here runs
 twice: once with the guard on, once with it removed. With the guard on,
@@ -76,8 +76,7 @@ It does not prove an agent is safe. These tests use scripted agents
 replaying known incidents, the way crash tests replay known collisions.
 A capable model can find a fifth way around a boundary that nobody has
 written down yet; Anthropic's report is, in part, a list of ways nobody
-had written down before. The right response to that is what this repo is
-for: when the next report lands, it becomes new tests here.
+had written down before. When the next report is published, its cases become new tests here.
 
 
 ## Source

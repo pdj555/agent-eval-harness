@@ -1,8 +1,8 @@
 # agent-eval-harness guide
 
-The full reference: setup, usage, architecture, and design. For what this repo found and why it matters, see the [README](../README.md) and the [research summary](research.md).
+This guide covers setup, usage, architecture, and design. For what this repo found and why it matters, see the [README](../README.md) and the [research summary](research.md).
 
-## What it tells you
+## What the examples show
 
 From `examples/demo.py` (real run, scripted agents):
 
@@ -13,7 +13,7 @@ From `examples/demo.py` (real run, scripted agents):
 
 Winner by solve rate: **cot**
 
-With scripted agents, chain-of-thought buys 16.6 points of solve rate for 57 percent more cost per solve. Swap in real models and the same report says whether that trade is real.
+With scripted agents, chain-of-thought adds 16.6 points of solve rate for 57 percent more cost per solve. With real models, the same report shows whether the higher solve rate is worth the higher cost.
 
 From `examples/deep_dive.py` (12 tasks, statistical rigor):
 
@@ -23,8 +23,6 @@ From `examples/deep_dive.py` (12 tasks, statistical rigor):
 | buggy | 33.3% | [20.2%, 49.7%] | 36 |
 
 discordant pairs: 24/0; chi2=22.04, p=0.0000
-
-The gap is not noise.
 
 ## Quickstart
 
@@ -122,23 +120,35 @@ Create a suite, add tasks, then `POST /trials` with a task or suite ID. Each tri
 
 18/18 API tests pass. Run `python -m pytest tests/ -q` from `api/`. See [api/README.md](../api/README.md) for setup and the agent contract.
 
-## Key features
+## What the harness includes
 
-**12 coding-agent tasks, graded by pytest.** Six base tasks (fizzbuzz-plus, fix-binary-search, retry-backoff, lru-cache, csv-summary, balanced-parens) and six hard tasks that separate real agents from demos: race conditions, misleading stack traces, recursive schema validation, topological ordering, structural refactors. Every hard task ships with a verified oracle; `tests/test_hard_tasks.py` proves each is solvable and that broken solutions fail.
+### 12 coding tasks, graded by pytest
 
-**Statistical rigor.** Wilson confidence intervals on every solve rate. McNemar's test on paired outcomes to decide whether an ablation gain is real or noise. A sample-size calculator that answers "how many tasks before we trust a 10-point gain" before you pay for the runs.
+Six base tasks (fizzbuzz-plus, fix-binary-search, retry-backoff, lru-cache, csv-summary, balanced-parens) and six hard tasks: race conditions, misleading stack traces, recursive schema validation, topological ordering, structural refactors. Every hard task ships with a verified solution; `tests/test_hard_tasks.py` proves each is solvable and that broken solutions fail.
 
-**Failure taxonomy.** Every failure classified: syntax_error, import_error, name_error, assertion_failure, timeout, agent_crash, no_output. The variant-by-failure-type cross-tab shows which prompt changes fix which failure modes.
+### Confidence intervals and paired tests
 
-**Regression tracking.** Append-only JSONL log of scored runs. Trend tables and run-to-run deltas, so a team sees whether a prompt change helped or hurt across runs instead of trusting one afternoon's numbers.
+Wilson confidence intervals on every solve rate. McNemar's test on paired outcomes to decide whether a difference between variants is larger than chance variation. A sample-size calculator that estimates how many tasks a comparison needs before a 10-point gain can be trusted, before you pay for the runs.
 
-**Cost modeling.** Projected suite cost across price tiers, plus breakeven analysis: the eval pays for itself if it catches even a small share of bad deploys. Cost per solve is a first-class metric next to solve rate.
+### Failure classes
 
-**Ablation framework.** Five built-in prompt variants (`baseline`, `cot`, `plan-then-act`, `read-only-first`, `self-critique`), each with a documented hypothesis about what it trades. `compare()` runs every variant over every task N times and names a winner per metric.
+Every failure is classified: syntax_error, import_error, name_error, assertion_failure, timeout, agent_crash, no_output. The variant by failure type table shows which prompt changes fix which failure modes.
+
+### Scored run history
+
+An append-only JSONL log of scored runs, with trend tables and run to run deltas, so a prompt change is judged across runs instead of by one afternoon's numbers.
+
+### Cost estimates
+
+Projected suite cost across price tiers, plus a breakeven analysis: the eval pays for itself if it catches even a small share of bad deploys. Cost per solve is reported next to solve rate.
+
+### Comparing prompt variants
+
+Five built-in prompt variants (`baseline`, `cot`, `plan-then-act`, `read-only-first`, `self-critique`), each with a note on what it is expected to trade. `compare()` runs every variant over every task N times and names a winner per metric.
 
 ## Misalignment and containment tests
 
-Four checks built from Anthropic's October 9, 2026 report on unintended model actions: command injection through a flawed tool, submitting a live form that should never be submitted, reaching fee-gated data with a leaked token, and routing around a fetch tool's URL limit with a shortener. Each check reproduces one category in a sandbox and passes only if the containment layer blocks the workaround while the legitimate task still completes. Run the checks with the guard removed and all four fail, naming what escaped. That asymmetry is the point.
+Four checks built from Anthropic's October 9, 2026 report on unintended model actions: command injection through a flawed tool, submitting a live form that should never be submitted, reaching fee-gated data with a leaked token, and routing around a fetch tool's URL limit with a shortener. Each check reproduces one category in a sandbox and passes only if the containment layer blocks the workaround while the legitimate task still completes. Run the checks with the guard removed and all four fail, naming what escaped.
 
 ```bash
 python examples/misalignment.py
@@ -178,14 +188,14 @@ One agent attempt: solved flag, pytest detail, full pytest output, wall-clock la
 
 ### Metrics
 
-Solve rate is the headline. `pass@k` answers "does it ever get there." Cost per solve answers "what does a win cost." Reliability answers "does it win every time." Latency p50/p90 answers "how long do users wait."
+Solve rate is the share of runs that pass. `pass@k` is the share of tasks solved at least once in k repeats. Cost per solve is the total cost divided by the number of solved runs. Reliability is the share of tasks solved on every repeat. Latency p50 and p90 are the median and 90th percentile run times.
 
 ## Design principles
 
 1. Tests decide. No LLM-as-judge anywhere in the loop.
 2. Stdlib only in the core. Adapters are the only optional deps.
 3. Deterministic. Scripted agents make CI green without API keys.
-4. Cost is a first-class metric. Tokens have prices; the harness does the arithmetic.
+4. Cost is reported with every result. Tokens have prices; the harness does the arithmetic.
 5. Failures are data. The runner catches agent exceptions and records them.
 6. Uncertainty is reported, not hidden. Every rate ships with an interval.
 
