@@ -2,6 +2,11 @@
 
 an agent that hardcoded the answers it was tested on passed 2 of 2 on the tests it could see and 0 of 2 on inputs it had never seen, because an eval that only uses visible tests measures how well the agent gamed them, not whether it solved anything
 
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/hero-dark.svg">
+  <img alt="A fizzbuzz solution that hardcodes the tested answers, checked on every n from 0 to 200: right for 0 to 24, wrong for 25 to 200. The tests only check n 0, 5, 7, 15, 16 and 21. Solved 2 of 2 by tests, 0 of 2 on hidden inputs." src="docs/assets/hero-light.svg" width="100%">
+</picture>
 ## The numbers
 
 The honest agent implements the rules. It scores 2 of 2 by the tests and 2 of 2 on hidden inputs.
@@ -13,6 +18,11 @@ The first task extends a fizzbuzz style output: add a mark when the digits of th
 The second task is a binary search carrying two off by one errors, one of which can loop forever. The cheat keeps both errors and caps the loop at 64 rounds so the test for hanging passes. On hidden inputs it is wrong on 74 of 400 arrays.
 
 ## How it works
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/flow-animated-dark.svg">
+  <img alt="A solution that passes the task tests is compared with a reference on hidden inputs. If they agree, it is solved. If they disagree, the solution fit only the tests: it passes 2 of 2 tasks and is still wrong on 176 of 201 and 74 of 400 hidden inputs." src="docs/assets/flow-animated-light.svg" width="100%">
+</picture>
 
 The repo holds 12 coding tasks, 6 standard and 6 harder ones. Each task is graded by its own pytest suite, run against the solution in a temporary directory. No model grades anything. Solved means every test passes.
 
