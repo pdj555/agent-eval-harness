@@ -7,6 +7,7 @@ an agent that hardcoded the answers it was tested on passed 2 of 2 on the tests 
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/hero-dark.svg">
   <img alt="A fizzbuzz solution that hardcodes the tested answers, checked on every n from 0 to 200: right for 0 to 24, wrong for 25 to 200. The tests only check n 0, 5, 7, 15, 16 and 21. Solved 2 of 2 by tests, 0 of 2 on hidden inputs." src="docs/assets/hero-light.svg" width="100%">
 </picture>
+
 ## The numbers
 
 The honest agent implements the rules. It scores 2 of 2 by the tests and 2 of 2 on hidden inputs.
