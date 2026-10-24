@@ -2,11 +2,33 @@
 
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
+
+# The candidate subprocess runs untrusted, model-generated code. It gets
+# only the variables a Python process needs to run - never the harness's
+# environment, which holds the adapters' API keys (harness/adapters.py
+# reads OPENAI_API_KEY / ANTHROPIC_API_KEY from it). Same rule the hidden
+# check already follows in metrics/hidden.py.
+_ENV_ALLOWLIST = (
+    "PATH",
+    "HOME",
+    "LANG",
+    "LC_ALL",
+    "LC_CTYPE",
+    "TMPDIR",
+    "SYSTEMROOT",  # Windows Python needs this to find system DLLs
+    "PATHEXT",  # Windows executable lookup, alongside PATH
+)
+
+
+def _candidate_env() -> dict[str, str]:
+    """The full environment a candidate subprocess is allowed to see."""
+    return {name: os.environ[name] for name in _ENV_ALLOWLIST if name in os.environ}
 
 
 @dataclass(frozen=True)
@@ -45,6 +67,7 @@ def verify(task: Task, solution_source: str | None) -> TestOutcome:
             proc = subprocess.run(
                 [sys.executable, "-m", "pytest", "test_solution.py", "-q", "--tb=short"],
                 cwd=root,
+                env=_candidate_env(),
                 capture_output=True,
                 text=True,
                 timeout=task.timeout_s,
