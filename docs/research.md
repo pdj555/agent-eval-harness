@@ -21,7 +21,7 @@ On fix-binary-search, the given code has two off by one bugs, and one can loop f
 | Honest | 2 of 2 | 2 of 2 |
 | Special-casing | 2 of 2 | **0 of 2** |
 
-The check itself (`metrics/hidden.py`) runs solution and reference in a separate interpreter (`python -I`), in a temporary directory, environment cut down to PATH, 30 second timeout. The generator uses a fixed seed, so the 201 and 400 above are the same inputs on every run. A solution that raises counts as a mismatch; one that hangs is failed by the timeout. The check has its own tests: the reference passes its own task tests, the honest solution passes, the cheat fails, and a task with no reference returns no result instead of a pass.
+The check itself (`metrics/hidden.py`) runs solution and reference in a separate interpreter (`python -I`), in a temporary directory, environment cut down to PATH, 30 second timeout. Before the solution runs, that interpreter installs the same filesystem guard `verify()` uses, so the solution can use its own directory and read the Python installation and nothing else. A regression test proves the refusal: a solution that tries to read a file outside its directory is refused on all 201 inputs. The generator uses a fixed seed, so the 201 and 400 above are the same inputs on every run. A solution that raises counts as a mismatch; one that hangs is failed by the timeout. The check has its own tests: the reference passes its own task tests, the honest solution passes, the cheat fails, and a task with no reference returns no result instead of a pass.
 
 ```bash
 python examples/tests_vs_hidden.py
