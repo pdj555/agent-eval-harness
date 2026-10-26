@@ -6,6 +6,9 @@ This check runs the solution and a reference implementation on hundreds of input
 tests never use and reports where they disagree.
 
 The solution runs in a separate, isolated interpreter with a timeout, never in-process.
+Before the solution runs, the interpreter installs the same filesystem guard verify()
+uses: the solution may use its own working directory and read the Python installation,
+and every other file operation, process start, and native code load is refused.
 References cover the tasks with a pure function to compare; other tasks return None.
 """
 
@@ -67,11 +70,80 @@ def inputs(rng):
 }
 
 _RUNNER = r'''
-import json, random, sys
+import json, os, random, site, sys, sysconfig
 spec = json.loads(sys.stdin.read())
 ref, sol, gen = {}, {}, {}
 exec(spec["reference"], ref)
 exec(spec["generator"], gen)
+
+
+def _install_filesystem_guard():
+    # The same guard verify() installs (see harness/task.py): the
+    # solution may use its own working directory, may read the Python
+    # installation, and may not touch anything else or start a process.
+    sandbox = os.path.realpath(os.getcwd())
+    found = [sandbox, sys.prefix, sys.base_prefix, "/usr/share/zoneinfo"]
+    found += list(sysconfig.get_paths().values())
+    for getter_name in ("getsitepackages", "getusersitepackages"):
+        getter = getattr(site, getter_name, None)
+        if getter is None:
+            continue
+        try:
+            value = getter()
+        except Exception:
+            continue
+        found += value if isinstance(value, list) else [value]
+    roots = tuple(os.path.realpath(p) for p in found if p and os.path.exists(p))
+
+    def inside(path, allowed):
+        return any(path == root or path.startswith(root + os.sep) for root in allowed)
+
+    def check(raw, write):
+        if isinstance(raw, int):
+            return
+        if isinstance(raw, bytes):
+            raw = os.fsdecode(raw)
+        if not isinstance(raw, (str, os.PathLike)):
+            return
+        path = os.path.realpath(os.fspath(raw))
+        if path == os.path.realpath("/dev/null") or inside(path, (sandbox,)):
+            return
+        if not write and inside(path, roots):
+            return
+        action = "write" if write else "read"
+        raise PermissionError(f"candidate code may not {action} outside its sandbox: {path}")
+
+    def guard(event, args):
+        if event == "import":
+            module = args[0] if args and isinstance(args[0], str) else ""
+            if module.split(".")[0] in ("ctypes", "_ctypes"):
+                raise ImportError("candidate code may not import ctypes: native code runs outside the filesystem guard")
+            if len(args) > 1 and isinstance(args[1], (str, os.PathLike)):
+                filename = os.path.realpath(os.fspath(args[1]))
+                if inside(filename, (sandbox,)) and filename.endswith((".so", ".dylib", ".pyd", ".dll")):
+                    raise ImportError("candidate code may not import a shared library from its sandbox")
+        elif event == "open":
+            mode = args[1] if len(args) > 1 and isinstance(args[1], str) else ""
+            check(args[0], any(flag in mode for flag in "wxa+"))
+        elif event in ("os.listdir", "os.scandir"):
+            check(args[0], False)
+        elif event in ("os.mkdir", "os.rmdir", "os.remove", "os.unlink", "os.chmod", "os.chown", "os.truncate", "os.utime"):
+            check(args[0], True)
+        elif event in ("os.rename", "os.replace"):
+            check(args[0], True)
+            check(args[1], True)
+        elif event == "os.link":
+            check(args[0], False)
+            check(args[1], True)
+        elif event == "os.symlink":
+            check(args[1], True)
+        elif event in ("subprocess.Popen", "os.system", "os.posix_spawn", "os.exec", "os.startfile", "ctypes.dlopen", "ctypes.dlsym"):
+            raise PermissionError(f"candidate code may not use {event}: it would run outside the filesystem guard")
+
+    sys.addaudithook(guard)
+
+
+_install_filesystem_guard()
 try:
     exec(spec["solution"], sol)
     fn = sol[spec["name"]]
